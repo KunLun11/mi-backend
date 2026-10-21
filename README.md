@@ -57,6 +57,15 @@ uv run alembic upgrade head
 docker compose run --rm backend uv run alembic upgrade head
 ```
 
+## Справочники (seed)
+
+Идемпотентное заполнение подходов, IT-контекстов и запросов клиентов
+(состав — `docs/spec/06-seed.md`):
+
+```bash
+uv run python -m scripts.seed_dicts
+```
+
 ## OAuth (Яндекс / Google / GitHub)
 
 Ключи задаются в `.env`: `{PROVIDER}_CLIENT_ID`, `{PROVIDER}_CLIENT_SECRET`,
