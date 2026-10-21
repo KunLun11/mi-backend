@@ -1,0 +1,97 @@
+name: mind-it
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mind_it}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mind_it}
+      POSTGRES_DB: ${POSTGRES_DB:-mind_it}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mind_it} -d ${POSTGRES_DB:-mind_it}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      DEBUG: ${DEBUG:-true}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-mind_it}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mind_it}
+      POSTGRES_DB: ${POSTGRES_DB:-mind_it}
+      REDIS_URL: redis://redis:6379/0
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_FROM: ${SMTP_FROM:-noreply@mind-it.local}
+      JWT_SECRET: ${JWT_SECRET:-dev-insecure-secret-change-me-please-32b}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173"]}
+    ports:
+      - "8000:8000"
+    volumes:
+      # исходники — для hot-reload
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini:ro
+      # манифесты — чтобы `uv run` внутри контейнера видел актуальный lock
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      - ./uv.lock:/app/uv.lock:ro
+      # кеш uv между перезапусками
+      - uv_cache:/root/.cache/uv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # --no-sync: окружение уже собрано на этапе build (docker compose build после uv add)
+    command:
+      [
+        "uv",
+        "run",
+        "--no-sync",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
+
+volumes:
+  postgres_data:
+  redis_data:
+  uv_cache:
