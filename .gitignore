@@ -1,0 +1,46 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+wheels/
+
+# ---------- Виртуальные окружения (uv / venv) ----------
+.venv/
+venv/
+ENV/
+
+# uv.lock коммитим — он фиксирует версии зависимостей.
+
+# ---------- Инструменты ----------
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.prof
+
+# ---------- Окружение и секреты ----------
+.env
+.env.*
+!.env.example
+
+# ---------- IDE / OS ----------
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---------- Логи и локальные артефакты ----------
+*.log
+logs/
+*.sqlite3
+*.db
+/tmp/
