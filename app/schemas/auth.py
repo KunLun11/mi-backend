@@ -6,7 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from app.models.enums import Format, PsychologistStatus, UserRole
+from app.models.enums import UserRole
+from app.schemas.profiles import ClientProfileOut, PsychologistProfileOut
 
 
 class RegisterRequest(BaseModel):
@@ -89,30 +90,6 @@ class UserPublic(BaseModel):
     email_verified: bool
     role_selected: bool
     created_at: datetime
-
-
-class ClientProfileOut(BaseModel):
-    """Краткое представление профиля клиента."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    first_name: str | None
-    timezone: str
-    preferred_format: Format
-
-
-class PsychologistProfileOut(BaseModel):
-    """Краткое представление профиля психолога."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    first_name: str
-    last_name: str | None
-    status: PsychologistStatus
-    years_experience: int
-    session_price_rub: int
-    supervision_confirmed: bool
-    is_verified_it_context: bool
 
 
 class MeResponse(UserPublic):
