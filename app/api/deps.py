@@ -1,5 +1,6 @@
 """Общие FastAPI-dependencies: БД, Redis, текущий пользователь."""
 
+from collections.abc import Awaitable, Callable
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -9,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.redis import get_redis
 from app.database import get_session
-from app.models import User
+from app.models import User, UserRole
 from app.services import token_service
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -58,3 +59,21 @@ async def get_current_user(
 
 AccessPayloadDep = Annotated[token_service.AccessTokenPayload, Depends(get_access_payload)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def require_role(role: UserRole) -> Callable[[User], Awaitable[User]]:
+    """Dependency-фабрика: пускать только пользователя с указанной ролью."""
+
+    async def dependency(user: CurrentUser) -> User:
+        if user.role is not role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="forbidden_role",
+            )
+        return user
+
+    return dependency
+
+
+ClientUser = Annotated[User, Depends(require_role(UserRole.CLIENT))]
+PsychologistUser = Annotated[User, Depends(require_role(UserRole.PSYCHOLOGIST))]
