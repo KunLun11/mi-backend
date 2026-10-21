@@ -25,11 +25,10 @@ from app.models import (
     UserRole,
 )
 from app.schemas.auth import (
-    ClientProfileOut,
     MeResponse,
-    PsychologistProfileOut,
     TokenResponse,
 )
+from app.schemas.profiles import ClientProfileOut, PsychologistProfileOut
 from app.services import email_service, token_service
 
 settings = get_settings()
