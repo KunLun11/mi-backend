@@ -64,6 +64,7 @@ services:
     volumes:
       # исходники — для hot-reload
       - ./app:/app/app
+      - ./scripts:/app/scripts
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini:ro
       # манифесты — чтобы `uv run` внутри контейнера видел актуальный lock
