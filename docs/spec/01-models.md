@@ -46,6 +46,7 @@
   `calendar_url: str | None`, `diploma_file: str | None`,
   `supervision_confirmed: bool=False`, `is_verified_it_context: bool=False`,
   `verification_notes: Text | None`,
+  `formats: list[Format] = ["online"]` (`online|offline|both`),
   `status: PsychologistStatus` (`draft|pending|approved|rejected`, default `draft`),
   timestamps.
 - M2M: `approaches` (через `psychologist_approaches`),
