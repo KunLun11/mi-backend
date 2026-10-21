@@ -7,6 +7,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -60,6 +61,11 @@ class PsychologistProfile(TimestampMixin, Base):
     supervision_confirmed: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_verified_it_context: Mapped[bool] = mapped_column(default=False, nullable=False)
     verification_notes: Mapped[str | None] = mapped_column(Text)
+    formats: Mapped[list[Format]] = mapped_column(
+        ARRAY(enum_column(Format, "format")),
+        default=lambda: [Format.ONLINE],
+        nullable=False,
+    )
     status: Mapped[PsychologistStatus] = mapped_column(
         enum_column(PsychologistStatus, "psychologist_status"),
         default=PsychologistStatus.DRAFT,
