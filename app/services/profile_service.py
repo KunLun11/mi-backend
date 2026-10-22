@@ -1,5 +1,6 @@
 """Бизнес-логика профилей клиента и психолога: чтение, обновление, модерация."""
 
+from collections.abc import Sequence
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -28,6 +29,39 @@ async def get_client_profile(db: AsyncSession, user: User) -> ClientProfile:
             detail="profile_not_found",
         )
     return profile
+
+
+async def load_client_profiles(
+    db: AsyncSession,
+    user_ids: Sequence[UUID],
+) -> dict[UUID, ClientProfile]:
+    """Загрузить профили клиентов одним запросом (индекс — `user_id`)."""
+    ids = list(dict.fromkeys(user_ids))
+    if not ids:
+        return {}
+
+    result = await db.execute(select(ClientProfile).where(ClientProfile.user_id.in_(ids)))
+    return {profile.user_id: profile for profile in result.scalars()}
+
+
+async def load_psychologist_profiles(
+    db: AsyncSession,
+    user_ids: Sequence[UUID],
+) -> dict[UUID, PsychologistProfile]:
+    """Загрузить профили психологов с подходами одним запросом."""
+    ids = list(dict.fromkeys(user_ids))
+    if not ids:
+        return {}
+
+    result = await db.execute(
+        select(PsychologistProfile)
+        .where(PsychologistProfile.user_id.in_(ids))
+        .options(
+            selectinload(PsychologistProfile.approaches),
+            selectinload(PsychologistProfile.it_contexts),
+        )
+    )
+    return {profile.user_id: profile for profile in result.scalars()}
 
 
 async def update_client_profile(

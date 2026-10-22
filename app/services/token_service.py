@@ -76,6 +76,9 @@ def decode_access_token(token: str) -> AccessTokenPayload:
             settings.jwt_secret,
             algorithms=[settings.jwt_algorithm],
             issuer=settings.jwt_issuer,
+            # `exp` проверяем вручную ниже, чтобы отдать отдельный код
+            # `token_expired` (фронт по нему запускает refresh).
+            options={"verify_exp": False},
         )
     except JWTError as exc:
         raise TokenError("invalid_token") from exc
