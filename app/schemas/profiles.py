@@ -51,6 +51,16 @@ class ClientProfileOut(BaseModel):
     updated_at: datetime
 
 
+class ClientPublic(BaseModel):
+    """Короткая карточка клиента для заявок и сессий психолога."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: UUID
+    first_name: str | None
+    timezone: str
+
+
 class PsychologistProfileIn(BaseModel):
     """Обновление профиля психолога (передаются только изменяемые поля).
 
