@@ -64,4 +64,6 @@
 - `make_admin.py <email>` — повысить роль.
 - `recommend.py <quiz_id> <psychologist_id> "<admin_note>" [rank]` —
   создать `Recommendation` и обновить статус квиза.
+- `moderate_psychologist.py <email> [--reject] [--note "..."]` — одобрить
+  или отклонить профиль психолога.
 - `seed_dicts.py` — заполнить справочники.

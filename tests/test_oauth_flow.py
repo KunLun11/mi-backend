@@ -49,6 +49,18 @@ def _bearer(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _redirect_tokens(response: httpx.Response) -> dict[str, str]:
+    """Достать токены из redirect-ответа callback на фронтенд."""
+    assert response.status_code == 302, response.text
+    location = response.headers["location"]
+    assert "/auth/callback" in location
+    query = parse_qs(urlsplit(location).query)
+    return {
+        "access_token": query["access"][0],
+        "refresh_token": query["refresh"][0],
+    }
+
+
 async def _authorize(client: AsyncClient, provider: OAuthProvider = OAuthProvider.YANDEX) -> str:
     """Запросить authorize URL и вернуть одноразовый state."""
     response = await client.get(f"{API}/oauth/{provider.value}/authorize")
@@ -101,8 +113,7 @@ async def test_yandex_new_user_and_set_role(client: AsyncClient) -> None:
         state = await _authorize(client)
         response = await _callback(client, OAuthProvider.YANDEX, state)
 
-    assert response.status_code == 200, response.text
-    tokens = response.json()
+    tokens = _redirect_tokens(response)
     payload = token_service.decode_access_token(tokens["access_token"])
 
     async with SessionFactory() as db:
@@ -162,15 +173,13 @@ async def test_existing_oauth_account_logs_in_same_user(client: AsyncClient) -> 
         _mock_yandex(mock)
         state = await _authorize(client)
         first = await _callback(client, OAuthProvider.YANDEX, state)
-    assert first.status_code == 200, first.text
-    first_sub = token_service.decode_access_token(first.json()["access_token"]).sub
+    first_sub = token_service.decode_access_token(_redirect_tokens(first)["access_token"]).sub
 
     with respx.mock(assert_all_called=False) as mock:
         _mock_yandex(mock)
         state = await _authorize(client)
         second = await _callback(client, OAuthProvider.YANDEX, state)
-    assert second.status_code == 200, second.text
-    second_sub = token_service.decode_access_token(second.json()["access_token"]).sub
+    second_sub = token_service.decode_access_token(_redirect_tokens(second)["access_token"]).sub
 
     assert second_sub == first_sub
 
@@ -202,8 +211,10 @@ async def test_oauth_links_to_existing_email(client: AsyncClient) -> None:
         state = await _authorize(client)
         response = await _callback(client, OAuthProvider.YANDEX, state)
 
-    assert response.status_code == 200, response.text
-    assert token_service.decode_access_token(response.json()["access_token"]).sub == user_id
+    assert response.status_code == 302, response.text
+    assert (
+        token_service.decode_access_token(_redirect_tokens(response)["access_token"]).sub == user_id
+    )
 
     async with SessionFactory() as db:
         linked = await db.get(User, user_id)
@@ -229,7 +240,7 @@ async def test_oauth_state_is_single_use(client: AsyncClient) -> None:
         _mock_yandex(mock)
         state = await _authorize(client)
         first = await _callback(client, OAuthProvider.YANDEX, state)
-        assert first.status_code == 200, first.text
+        assert first.status_code == 302, first.text
 
         replay = await _callback(client, OAuthProvider.YANDEX, state)
 
@@ -276,8 +287,8 @@ async def test_github_uses_primary_verified_email(client: AsyncClient) -> None:
         state = await _authorize(client, OAuthProvider.GITHUB)
         response = await _callback(client, OAuthProvider.GITHUB, state)
 
-    assert response.status_code == 200, response.text
-    sub = token_service.decode_access_token(response.json()["access_token"]).sub
+    assert response.status_code == 302, response.text
+    sub = token_service.decode_access_token(_redirect_tokens(response)["access_token"]).sub
 
     async with SessionFactory() as db:
         user = await db.get(User, sub)

@@ -59,6 +59,7 @@ services:
       SMTP_FROM: ${SMTP_FROM:-noreply@mind-it.local}
       JWT_SECRET: ${JWT_SECRET:-dev-insecure-secret-change-me-please-32b}
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173"]}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
     ports:
       - "8000:8000"
     volumes:

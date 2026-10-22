@@ -12,7 +12,8 @@
 - `POST /auth/logout-all` → 204
 - `POST /auth/set-role` `{role}` → `UserPublic`
 - `GET  /auth/oauth/{provider}/authorize` → `{authorize_url}`
-- `GET  /auth/oauth/{provider}/callback?code&state` → `TokenResponse`
+- `GET  /auth/oauth/{provider}/callback?code&state` → 302 на
+  `{FRONTEND_URL}/auth/callback?access=...&refresh=...`
 - `GET  /auth/me` → `UserPublic + profile`
 
 ## Clients
@@ -26,6 +27,11 @@
 - `GET  /psychologists` (фильтры: `approach`, `it_context`, `format`,
   пагинация) → `{items, total}` — только `approved`
 - `GET  /psychologists/{id}` — только `approved`
+
+## Dictionaries
+- `GET  /dictionaries/approaches` → `{id, slug, name}[]`
+- `GET  /dictionaries/it-contexts` → `{id, slug, name}[]`
+- `GET  /dictionaries/concerns` → `{id, slug, name}[]`
 
 ## Quizzes
 - `POST /quizzes` `QuizIn` → `QuizOut`

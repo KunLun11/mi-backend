@@ -66,6 +66,39 @@ docker compose run --rm backend uv run alembic upgrade head
 uv run python -m scripts.seed_dicts
 ```
 
+## Рекомендации куратора (CLI)
+
+После того как клиент прошёл квиз, куратор вручную прикрепляет психолога
+с обоснованием. Первая рекомендация переводит квиз в статус `recommended`:
+
+```bash
+uv run python -m scripts.recommend <quiz_id> <psychologist_id> "Почему выбран" [rank]
+```
+
+Психолог должен иметь `status=approved` в профиле.
+
+## Модерация психологов (CLI)
+
+Психолог заполняет профиль и отправляет его на проверку (`pending`).
+Куратор одобряет или отклоняет профиль:
+
+```bash
+uv run python -m scripts.moderate_psychologist psy@example.com
+uv run python -m scripts.moderate_psychologist psy@example.com --reject --note "Не хватает документов"
+```
+
+Одобрение выставляет `status=approved`, `supervision_confirmed` и
+`is_verified_it_context`; после этого психолог видит входящие заявки.
+
+## Фронтенд
+
+```bash
+cd ../mind_it_frontend
+cp .env.example .env   # VITE_API_URL=http://localhost:8000/api/v1
+npm install
+npm run dev            # http://localhost:5173
+```
+
 ## OAuth (Яндекс / Google / GitHub)
 
 Ключи задаются в `.env`: `{PROVIDER}_CLIENT_ID`, `{PROVIDER}_CLIENT_SECRET`,
@@ -75,7 +108,8 @@ uv run python -m scripts.seed_dicts
 1. `GET /api/v1/auth/oauth/{provider}/authorize` → `{"authorize_url": "..."}`.
    `state` живёт `OAUTH_STATE_TTL_MINUTES` (10 минут) в Redis и одноразовый.
 2. Провайдер возвращает браузер на callback с `code` и `state`;
-   `GET /api/v1/auth/oauth/{provider}/callback` выдаёт `TokenResponse`.
+   `GET /api/v1/auth/oauth/{provider}/callback` делает **302** на
+   `{FRONTEND_URL}/auth/callback?access=...&refresh=...`.
 3. Если аккаунт создан впервые (`role_selected=false`), роль выбирается через
    `POST /api/v1/auth/set-role` `{"role": "client" | "psychologist"}`.
 
