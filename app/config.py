@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
     cors_origins: list[str] = ["http://localhost:5173"]
+    frontend_url: str = "http://localhost:5173"
 
     # PostgreSQL
     postgres_host: str = "localhost"
