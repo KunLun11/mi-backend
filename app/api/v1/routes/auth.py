@@ -1,10 +1,13 @@
 """Эндпоинты аутентификации: email + пароль, токены и сессии."""
 
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
+from fastapi.responses import RedirectResponse
 
 from app.api.deps import AccessPayloadDep, CurrentUser, RedisDep, SessionDep
+from app.config import get_settings
 from app.core.rate_limit import RateLimit
 from app.models import OAuthProvider
 from app.schemas.auth import (
@@ -22,6 +25,7 @@ from app.schemas.auth import (
 from app.services import auth_service, oauth_service, token_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+settings = get_settings()
 
 
 def _client_meta(request: Request) -> tuple[str | None, str | None]:
@@ -170,7 +174,11 @@ async def oauth_authorize(
     return OAuthAuthorizeResponse(authorize_url=authorize_url)
 
 
-@router.get("/oauth/{provider}/callback", response_model=TokenResponse)
+@router.get(
+    "/oauth/{provider}/callback",
+    response_class=RedirectResponse,
+    status_code=status.HTTP_302_FOUND,
+)
 async def oauth_callback(
     provider: OAuthProvider,
     request: Request,
@@ -179,8 +187,8 @@ async def oauth_callback(
     code: Annotated[str | None, Query()] = None,
     state: Annotated[str | None, Query()] = None,
     error: Annotated[str | None, Query()] = None,
-) -> TokenResponse:
-    """Обработать возврат от провайдера и выдать токены приложения."""
+) -> RedirectResponse:
+    """Обработать возврат от провайдера и вернуть пользователя во фронтенд."""
     if error is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -193,7 +201,7 @@ async def oauth_callback(
         )
 
     user_agent, ip_address = _client_meta(request)
-    return await oauth_service.complete_callback(
+    tokens = await oauth_service.complete_callback(
         db,
         redis,
         provider,
@@ -201,6 +209,11 @@ async def oauth_callback(
         state=state,
         user_agent=user_agent,
         ip_address=ip_address,
+    )
+    query = urlencode({"access": tokens.access_token, "refresh": tokens.refresh_token})
+    return RedirectResponse(
+        url=f"{settings.frontend_url.rstrip('/')}/auth/callback?{query}",
+        status_code=status.HTTP_302_FOUND,
     )
 
 
